@@ -1,65 +1,70 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║   TEST SENSORES IR · ESP32 DevKit v1 (38 pines)             ║
- * ║   v3 — Dos sensores distintos, cada uno con su tratamiento  ║
+ * ║   TEST SENSOR IR · ESP32 DevKit v1 (38 pines)               ║
+ * ║   v5 — TCRT5000 + LED RGB (ánodo común)                     ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * ┌──────────────────────────────────────────────────────────────┐
- * │  SENSOR 1: TCRT5000  (módulo de 4 pines)                    │
+ * │  SENSOR: TCRT5000  (módulo de 4 pines)                      │
  * │  Pines: VCC · GND · DO (digital) · AO (analógico)           │
  * │                                                              │
- * │  · Tiene un LED IR emisor y un fototransistor receptor.      │
- * │  · AO = señal analógica continua (0–4095). Cuanto más cerca  │
+ * │  · LED IR emisor + fototransistor receptor.                  │
+ * │  · AO = señal analógica continua (0–4095). Cuanto más cerca │
  * │    o más reflectante es el objeto, menor es el valor.        │
- * │  · DO = salida digital (HIGH/LOW) según el potenciómetro     │
- * │    azul del módulo. Gíralo para ajustar la distancia de      │
- * │    disparo.                                                  │
- * │  · CALIBRACIÓN POR SOFTWARE: se le aplica media móvil,       │
- * │    baseline adaptativo y umbral dinámico sobre la señal AO.  │
- * │  · Es el sensor que más datos da ← el más útil para score.  │
- * │                                                              │
- * │  SENSOR 2: Flying-Fish  (módulo de 3 pines)                 │
- * │  Pines: VCC · GND · OUT (digital)                            │
- * │                                                              │
- * │  · También tiene LED IR + fototransistor, pero solo da       │
- * │    salida digital: HIGH (nada) o LOW (objeto detectado).     │
- * │  · NO tiene salida analógica → no se puede hacer media       │
- * │    móvil ni baseline adaptativo por software.                │
- * │  · Su sensibilidad se ajusta SOLO con el potenciómetro       │
- * │    del módulo (si tu modelo lo tiene).                       │
- * │  · Se le aplica DEBOUNCE por software (ignora cambios       │
- * │    más rápidos que 30 ms) para evitar rebotes.               │
+ * │  · DO = salida digital (HIGH/LOW) según potenciómetro azul. │
+ * │  · CALIBRACIÓN POR SOFTWARE: media móvil, baseline          │
+ * │    adaptativo y umbral dinámico sobre la señal AO.           │
  * └──────────────────────────────────────────────────────────────┘
  *
- *  CONEXIÓN (todo del lado derecho del DevKit):
+ *  PINES RESERVADOS POR PANEL HUB75 (NO USAR):
+ *   GPIO 25, 26, 27, 14, 12, 13, 23, 19, 5, 17, 16, 4, 15
  *
- *   ESP32           Sensor
+ *  CONEXIÓN:
+ *
+ *   ESP32           Sensor TCRT5000
  *   ─────────────────────────────────────────────
- *   3.3V       →    VCC  (ambos sensores)
- *   GND        →    GND  (ambos sensores)
- *   GPIO19     ←    DO   TCRT5000 (digital, 4 pines)
- *   GPIO15     ←    AO   TCRT5000 (analógico, 4 pines)
- *   GPIO22     ←    OUT  Flying-Fish (digital, 3 pines)
+ *   3.3V       →    VCC
+ *   GND        →    GND
+ *   GPIO22     ←    DO  (digital)
+ *   GPIO33     ←    AO  (analógico)
  *   ─────────────────────────────────────────────
+ *
+ *   ESP32           LED RGB (ánodo común)
+ *   ─────────────────────────────────────────────
+ *   3.3V       →    Ánodo (+) largo
+ *   GPIO18     →    R  (con resistencia 220Ω)
+ *   GPIO21     →    G  (con resistencia 220Ω)
+ *   GPIO2      →    B  (con resistencia 220Ω)
+ *   ─────────────────────────────────────────────
+ *   NOTA: Ánodo común → LOW=encendido, HIGH=apagado
+ *
+ *   Colores según distancia:
+ *     Verde    = nada detectado (lejos del umbral)
+ *     Amarillo = algo se acerca (zona intermedia)
+ *     Rojo     = objeto detectado (cruzó el umbral)
  *
  *  CALIBRACIÓN AL ENCENDER (~3 seg):
- *   → Solo aplica al TCRT5000 (señal analógica AO).
- *   → El sensor debe estar YA montado detrás del vidrio
- *     de la cancha, en su posición final.
- *   → Durante 3 seg no debe haber nada del otro lado
- *     del cristal (ni jugador, ni raqueta, ni pelota).
- *   → El Flying-Fish no necesita calibración por software,
- *     solo ajustar su potenciómetro manualmente.
+ *   → El sensor debe estar YA montado en su posición final.
+ *   → Durante 3 seg no debe haber nada delante del sensor
+ *     (ni jugador, ni raqueta, ni pelota).
  *
  *  Abre Serial Plotter en Arduino IDE a 115200 baud
  */
 
 // ══════════════════════════════════════════════════════════
-//  PINES
+//  PINES  (compatibles con panel HUB75)
 // ══════════════════════════════════════════════════════════
-#define PIN_TCRT_DO   19    // TCRT5000 digital out  → GPIO19
-#define PIN_TCRT_AO   15    // TCRT5000 analógico    → GPIO15 (ADC2_3)
-#define PIN_FF_OUT    22    // Flying-Fish digital   → GPIO22
+#define PIN_TCRT_DO   22    // TCRT5000 digital out  → GPIO22
+#define PIN_TCRT_AO   33    // TCRT5000 analógico    → GPIO33 (ADC1_CH5)
+
+// LED RGB (ánodo común)
+#define PIN_LED_R     18    // Rojo   → GPIO18
+#define PIN_LED_G     21    // Verde  → GPIO21
+#define PIN_LED_B      2    // Azul   → GPIO2
+
+// PWM config
+#define PWM_FREQ    5000    // 5 kHz
+#define PWM_RES        8    // 8 bits (0–255)
 
 // ══════════════════════════════════════════════════════════
 //  CONFIG GENERAL
@@ -68,48 +73,41 @@
 #define PRINT_EVERY_MS  80
 
 // ══════════════════════════════════════════════════════════
-//  TCRT5000 — Filtro media móvil (solo para señal AO)
+//  Filtro media móvil (señal AO)
 // ══════════════════════════════════════════════════════════
-#define FILTER_SIZE     8           // muestras (potencia de 2)
+#define FILTER_SIZE     16          // muestras (potencia de 2)
 int  aoBuffer[FILTER_SIZE];
 int  bufferIndex = 0;
 bool bufferFull  = false;
 
 // ══════════════════════════════════════════════════════════
-//  TCRT5000 — Calibración y umbral adaptativo (solo AO)
+//  Calibración y umbral adaptativo (señal AO)
 // ══════════════════════════════════════════════════════════
 #define CALIB_SAMPLES     50        // muestras durante calibración (~3 seg)
 #define CALIB_DELAY_MS    60        // delay entre muestras de calibración
-#define THRESHOLD_PCT     30        // % de caída vs baseline = detección
-#define HYSTERESIS_PCT    5         // % extra para soltar (anti-rebote)
+#define THRESHOLD_PCT     8         // % de caída vs baseline = detección
+#define HYSTERESIS_PCT    3         // % extra para soltar (anti-rebote)
 #define BASELINE_ALPHA    0.002f    // adapt. lenta (~30 seg para ajustarse)
+#define BASELINE_DEADZONE 5         // % máx desviación para adaptar baseline
 
-int   aoBaseline      = 0;         // baseline TCRT5000 "sin objeto"
+int   aoBaseline      = 0;         // baseline "sin objeto"
 int   aoThreshold     = 0;         // umbral dinámico de detección
 int   aoThresholdHigh = 0;         // umbral para soltar (histéresis)
 float baselineFloat   = 0.0f;
 
-bool  tcrtDetected    = false;     // detección TCRT5000 (AO + histéresis)
+bool  tcrtDetected    = false;     // detección (AO + histéresis)
 
 // ══════════════════════════════════════════════════════════
-//  FLYING-FISH — Debounce (solo digital, no hay analógico)
-// ══════════════════════════════════════════════════════════
-#define FF_DEBOUNCE_MS    30        // ignora cambios más rápidos que esto
-bool     ffDetected       = false;  // estado estable del Flying-Fish
-bool     ffLastRaw        = false;  // última lectura cruda
-uint32_t ffLastChangeMs   = 0;      // timestamp del último cambio crudo
-
-// ══════════════════════════════════════════════════════════
-//  ESTADO COMBINADO
+//  ESTADO
 // ══════════════════════════════════════════════════════════
 uint32_t lastPrintMs = 0;
 
 // ──────────────────────────────────────────────────────────
-//  FUNCIONES — TCRT5000
+//  FUNCIONES
 // ──────────────────────────────────────────────────────────
 
-// Media móvil sobre la señal analógica AO del TCRT5000
-int tcrt_addSampleAndFilter(int newVal) {
+// Media móvil sobre la señal analógica AO
+int addSampleAndFilter(int newVal) {
   aoBuffer[bufferIndex] = newVal;
   bufferIndex = (bufferIndex + 1) % FILTER_SIZE;
   if (bufferIndex == 0) bufferFull = true;
@@ -120,26 +118,42 @@ int tcrt_addSampleAndFilter(int newVal) {
   return (int)(sum / count);
 }
 
-// Recalcula umbrales del TCRT5000 a partir del baseline
-void tcrt_updateThresholds() {
+// Recalcula umbrales a partir del baseline (detecta CAÍDA)
+void updateThresholds() {
   aoThreshold     = aoBaseline - (aoBaseline * THRESHOLD_PCT / 100);
   aoThresholdHigh = aoBaseline - (aoBaseline * (THRESHOLD_PCT - HYSTERESIS_PCT) / 100);
 }
 
 // ──────────────────────────────────────────────────────────
-//  FUNCIONES — FLYING-FISH
+//  LED RGB — Ánodo común (0=full brillo, 255=apagado)
 // ──────────────────────────────────────────────────────────
+void setRGB(uint8_t r, uint8_t g, uint8_t b) {
+  // Ánodo común: invertir valores (255 - x)
+  ledcWrite(PIN_LED_R, 255 - r);
+  ledcWrite(PIN_LED_G, 255 - g);
+  ledcWrite(PIN_LED_B, 255 - b);
+}
 
-// Debounce: solo acepta el cambio si se mantiene >30 ms
-bool ff_debounce(bool rawReading, uint32_t now) {
-  if (rawReading != ffLastRaw) {
-    ffLastRaw = rawReading;
-    ffLastChangeMs = now;
+// Mapea aoFiltered a color RGB según proximidad al umbral
+void updateLedColor(int filtered, int baseline, int threshold) {
+  // 1.0 = en baseline (nada), 0.0 = en umbral (objeto)
+  float range = (float)(baseline - threshold);
+  if (range <= 0) range = 1;
+  float ratio = (float)(filtered - threshold) / range;
+  ratio = constrain(ratio, 0.0f, 1.0f);
+
+  if (ratio > 0.6f) {
+    // VERDE — lejos del umbral, nada detectado
+    setRGB(0, 255, 0);
+  } else if (ratio > 0.0f) {
+    // AMARILLO→ROJO — transición gradual al acercarse
+    // ratio 0.6→0.0 mapea G de 255→0
+    uint8_t g = (uint8_t)(255.0f * (ratio / 0.6f));
+    setRGB(255, g, 0);
+  } else {
+    // ROJO — objeto detectado (cruzó el umbral)
+    setRGB(255, 0, 0);
   }
-  if ((now - ffLastChangeMs) >= FF_DEBOUNCE_MS) {
-    ffDetected = ffLastRaw;
-  }
-  return ffDetected;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -149,24 +163,25 @@ void setup() {
 
   pinMode(PIN_TCRT_DO, INPUT);
   pinMode(PIN_TCRT_AO, INPUT);
-  pinMode(PIN_FF_OUT,  INPUT);
+
+  // Configurar PWM para LED RGB (ESP32 core v3 API)
+  ledcAttach(PIN_LED_R, PWM_FREQ, PWM_RES);
+  ledcAttach(PIN_LED_G, PWM_FREQ, PWM_RES);
+  ledcAttach(PIN_LED_B, PWM_FREQ, PWM_RES);
+  setRGB(0, 0, 255);  // Azul durante calibración
 
   analogReadResolution(12);       // 0–4095
   analogSetAttenuation(ADC_11db); // 0–3.3V
 
   Serial.println(F("\n═══════════════════════════════════════════════"));
-  Serial.println(F("  TEST SENSORES IR v3"));
-  Serial.println(F("  TCRT5000 (4pin) + Flying-Fish (3pin)"));
+  Serial.println(F("  TEST SENSOR IR v5 — TCRT5000 + LED RGB"));
+  Serial.println(F("  Sensor: DO=GPIO22  AO=GPIO33"));
+  Serial.println(F("  LED:    R=GPIO18   G=GPIO21   B=GPIO2"));
   Serial.println(F("═══════════════════════════════════════════════"));
-  Serial.println(F("  TCRT5000: DO=GPIO19  AO=GPIO15"));
-  Serial.println(F("  FlyFish:  OUT=GPIO22"));
-  Serial.println(F("───────────────────────────────────────────────"));
 
-  // ── CALIBRACIÓN TCRT5000 (solo AO, ~3 seg) ────────────
-  // ¡El sensor debe estar detrás del vidrio ya montado!
-  // No pongas nada del otro lado del cristal.
+  // ── CALIBRACIÓN (~3 seg) ──────────────────────────────
   Serial.println(F("  >> CALIBRANDO TCRT5000 (AO)..."));
-  Serial.println(F("     Sensor detrás del vidrio, cancha vacía"));
+  Serial.println(F("     No pongas nada delante del sensor."));
   Serial.println(F("     Espera ~3 segundos..."));
 
   long calibSum = 0;
@@ -180,7 +195,7 @@ void setup() {
   }
   aoBaseline = (int)(calibSum / CALIB_SAMPLES);
   baselineFloat = (float)aoBaseline;
-  tcrt_updateThresholds();
+  updateThresholds();
 
   // Llena el buffer del filtro con el baseline
   for (int i = 0; i < FILTER_SIZE; i++) aoBuffer[i] = aoBaseline;
@@ -188,74 +203,84 @@ void setup() {
 
   Serial.println(F("───────────────────────────────────────────────"));
   Serial.println(F("  TCRT5000 calibrado:"));
-  Serial.print(F("    Baseline:     ")); Serial.println(aoBaseline);
-  Serial.print(F("    Rango calib:  ")); Serial.print(calibMin);
+  Serial.print(F("    Baseline:      ")); Serial.println(aoBaseline);
+  Serial.print(F("    Rango calib:   ")); Serial.print(calibMin);
   Serial.print(F(" – ")); Serial.println(calibMax);
-  Serial.print(F("    Ruido:        ")); Serial.println(calibMax - calibMin);
-  Serial.print(F("    Umbral det:   < ")); Serial.println(aoThreshold);
+  Serial.print(F("    Ruido:         ")); Serial.println(calibMax - calibMin);
+  Serial.print(F("    Umbral det:    < ")); Serial.println(aoThreshold);
   Serial.print(F("    Umbral soltar: > ")); Serial.println(aoThresholdHigh);
   Serial.println(F("───────────────────────────────────────────────"));
-  Serial.println(F("  Flying-Fish: sin calibración SW"));
-  Serial.println(F("    Ajusta su potenciómetro manualmente."));
-  Serial.println(F("    Debounce = 30 ms activo."));
-  Serial.println(F("───────────────────────────────────────────────"));
-  Serial.println(F("  Plotter: AO_filt | Baseline | Umbral |"));
-  Serial.println(F("           TCRT_det | FF_det"));
+  Serial.println(F("  Plotter: AO_filt | Baseline | Umbral | DET"));
   Serial.println(F("═══════════════════════════════════════════════\n"));
-  delay(500);
+
+  // ── ESTABILIZACIÓN POST-CALIBRACIÓN (~2 seg) ─────────
+  // Lee valores reales con el vidrio y re-ajusta el baseline
+  Serial.println(F("  >> Estabilizando baseline..."));
+  setRGB(0, 0, 255);  // Azul durante estabilización
+  for (int i = 0; i < 200; i++) {  // 200 x 10ms = 2 seg
+    int val = analogRead(PIN_TCRT_AO);
+    int filt = addSampleAndFilter(val);
+    baselineFloat = baselineFloat * 0.95f + filt * 0.05f;  // convergencia rápida
+    aoBaseline = (int)baselineFloat;
+    updateThresholds();
+    delay(10);
+  }
+  Serial.print(F("  Baseline estable: ")); Serial.println(aoBaseline);
+  Serial.print(F("  Umbral final:     < ")); Serial.println(aoThreshold);
+  Serial.println(F("  >> Listo!\n"));
+  delay(300);
 }
 
 // ══════════════════════════════════════════════════════════
 void loop() {
   uint32_t now = millis();
 
-  // ── TCRT5000 (4 pines): lectura analógica + filtro ──
+  // ── Lectura analógica + filtro ──
   int  aoRaw      = analogRead(PIN_TCRT_AO);
-  int  aoFiltered = tcrt_addSampleAndFilter(aoRaw);
-  bool tcrtDO     = (digitalRead(PIN_TCRT_DO) == LOW);  // (informativo)
+  int  aoFiltered = addSampleAndFilter(aoRaw);
+  bool dOut       = (digitalRead(PIN_TCRT_DO) == LOW);  // (informativo)
 
-  // Detección TCRT5000 con histéresis sobre AO filtrado
+  // Detección: señal CAE por debajo del umbral
   if (!tcrtDetected && aoFiltered < aoThreshold) {
     tcrtDetected = true;
   } else if (tcrtDetected && aoFiltered > aoThresholdHigh) {
     tcrtDetected = false;
   }
 
-  // Baseline adaptativo TCRT5000 (solo cuando no hay objeto)
+  // Baseline adaptativo (solo cuando no hay objeto Y dentro de zona muerta)
   if (!tcrtDetected) {
-    baselineFloat = baselineFloat * (1.0f - BASELINE_ALPHA) + aoFiltered * BASELINE_ALPHA;
-    aoBaseline = (int)baselineFloat;
-    tcrt_updateThresholds();
+    int deadzone = aoBaseline * BASELINE_DEADZONE / 100;
+    if (abs(aoFiltered - aoBaseline) <= deadzone) {
+      baselineFloat = baselineFloat * (1.0f - BASELINE_ALPHA) + aoFiltered * BASELINE_ALPHA;
+      aoBaseline = (int)baselineFloat;
+      updateThresholds();
+    }
   }
 
-  // ── FLYING-FISH (3 pines): lectura digital + debounce ──
-  bool ffRaw = (digitalRead(PIN_FF_OUT) == LOW);
-  ff_debounce(ffRaw, now);
+  // ── LED RGB ──
+  updateLedColor(aoFiltered, aoBaseline, aoThreshold);
 
   // ── IMPRIMIR ──
   if (now - lastPrintMs >= PRINT_EVERY_MS) {
     lastPrintMs = now;
 
-    // SERIAL PLOTTER: 5 series
-    Serial.print(aoFiltered);                     // 1 azul:    TCRT AO filtrado
+    // SERIAL PLOTTER: 4 series
+    Serial.print(aoFiltered);                     // 1 azul:    AO filtrado
     Serial.print(",");
-    Serial.print(aoBaseline);                     // 2 naranja: TCRT baseline
+    Serial.print(aoBaseline);                     // 2 naranja: baseline
     Serial.print(",");
-    Serial.print(aoThreshold);                    // 3 rojo:    TCRT umbral
+    Serial.print(aoThreshold);                    // 3 rojo:    umbral
     Serial.print(",");
-    Serial.print(tcrtDetected ? 4000 : 0);        // 4 verde:   TCRT detección
-    Serial.print(",");
-    Serial.println(ffDetected ? 3500 : 0);        // 5 morado:  FF detección
+    Serial.println(tcrtDetected ? 4000 : 0);      // 4 verde:   detección
 
     // SERIAL MONITOR (descomenta para texto legible):
     /*
-    Serial.print("[TCRT5000] AO_raw="); Serial.print(aoRaw);
+    Serial.print("[TCRT] AO_raw="); Serial.print(aoRaw);
     Serial.print(" filt="); Serial.print(aoFiltered);
     Serial.print(" base="); Serial.print(aoBaseline);
     Serial.print(" umbral="); Serial.print(aoThreshold);
     Serial.print(" DET="); Serial.print(tcrtDetected ? "SI" : "no");
-    Serial.print(" DO="); Serial.print(tcrtDO ? "SI" : "no");
-    Serial.print("  [FF] DET="); Serial.println(ffDetected ? "SI" : "no");
+    Serial.print(" DO="); Serial.println(dOut ? "SI" : "no");
     */
   }
 
@@ -264,61 +289,31 @@ void loop() {
 
 /**
  * ═══════════════════════════════════════════════════════════
- *  DIFERENCIAS ENTRE TUS DOS SENSORES
+ *  PINES RESERVADOS POR PANEL HUB75
  * ═══════════════════════════════════════════════════════════
  *
- *  TCRT5000 (4 pines: VCC, GND, DO, AO)
- *  ──────────────────────────────────────
- *  · Tiene salida ANALÓGICA (AO): valor continuo 0–4095
- *    que varía con la distancia/reflectancia del objeto.
- *  · Tiene salida DIGITAL (DO): HIGH/LOW según potenciómetro.
- *  · Podemos hacer calibración y filtrado por SOFTWARE
- *    sobre AO → más preciso y adaptable.
- *  · Ideal como sensor principal.
- *
- *  Flying-Fish (3 pines: VCC, GND, OUT)
- *  ──────────────────────────────────────
- *  · Solo tiene salida DIGITAL (OUT): HIGH o LOW.
- *  · No hay señal analógica → no se puede filtrar ni
- *    hacer baseline adaptativo por software.
- *  · Su sensibilidad se ajusta SOLO con el potenciómetro
- *    físico del módulo (gíralo con destornillador).
- *  · Le aplicamos DEBOUNCE (30 ms) para evitar que
- *    rebote entre ON/OFF rápidamente.
- *  · Útil como confirmación/segundo sensor.
+ *   GPIO 25 → R1     GPIO 26 → G1
+ *   GPIO 27 → B1     GPIO 14 → G2
+ *   GPIO 12 → G2     GPIO 13 → B2
+ *   GPIO 23 → A      GPIO 19 → B
+ *   GPIO  5 → C      GPIO 17 → D
+ *   GPIO 16 → CLK    GPIO  4 → LAT
+ *   GPIO 15 → OE
  *
  * ═══════════════════════════════════════════════════════════
- *  MAPA LADO DERECHO DevKit 38 pines
+ *  PINES LIBRES DISPONIBLES
  * ═══════════════════════════════════════════════════════════
  *
- *   GPIO23   libre
- *   GPIO22  ← OUT Flying-Fish (3 pines)
- *   GPIO1    no usar (TX)
- *   GPIO3    no usar (RX)
- *   GPIO21   libre
- *   GPIO19  ← DO  TCRT5000  (4 pines)
- *   GPIO18   libre
- *   GPIO5    libre
- *   GPIO17   libre
- *   GPIO16   libre
- *   GPIO4    libre
- *   GPIO2    libre
- *   GPIO15  ← AO  TCRT5000  (4 pines)
- *   GND     → GND sensores
- *   3.3V    → VCC sensores
+ *   GPIO  2  ← B LED RGB (este sketch)
+ *   GPIO 18  ← R LED RGB (este sketch)
+ *   GPIO 21  ← G LED RGB (este sketch)
+ *   GPIO 22  ← DO TCRT5000 (este sketch)
+ *   GPIO 32  (ADC1_CH4, entrada)
+ *   GPIO 33  ← AO TCRT5000 (este sketch)
+ *   GPIO 34  (solo entrada, ADC1_CH6)
+ *   GPIO 35  (solo entrada, ADC1_CH7)
+ *   GPIO 36  (solo entrada, VP, ADC1_CH0)
+ *   GPIO 39  (solo entrada, VN, ADC1_CH3)
  *
- * ═══════════════════════════════════════════════════════════
- *  TIPS PARA USO DETRÁS DE VIDRIO
- * ═══════════════════════════════════════════════════════════
- *  1. Calibra CON el vidrio ya montado. El cristal absorbe
- *     parte de la señal IR — el baseline lo captura.
- *  2. El baseline adaptativo del TCRT5000 se ajusta solo
- *     si el vidrio se ensucia o cambia la luz ambiental.
- *  3. El Flying-Fish: ajusta su potenciómetro CON el vidrio
- *     puesto hasta que solo dispare al acercar un objeto.
- *  4. Si el vidrio es muy grueso/tintado, acerca más el
- *     sensor al cristal o sube THRESHOLD_PCT a 40–50.
- *  5. Pon tubo negro (shrink tube) en el emisor/receptor
- *     del TCRT5000 para bloquear luz lateral del sol.
  * ═══════════════════════════════════════════════════════════
  */
