@@ -75,7 +75,7 @@
 // ══════════════════════════════════════════════════════════
 //  Filtro media móvil (señal AO)
 // ══════════════════════════════════════════════════════════
-#define FILTER_SIZE     16          // muestras (potencia de 2)
+#define FILTER_SIZE     8           // muestras (potencia de 2) — reducido para pala de pádel
 int  aoBuffer[FILTER_SIZE];
 int  bufferIndex = 0;
 bool bufferFull  = false;
@@ -85,8 +85,10 @@ bool bufferFull  = false;
 // ══════════════════════════════════════════════════════════
 #define CALIB_SAMPLES     50        // muestras durante calibración (~3 seg)
 #define CALIB_DELAY_MS    60        // delay entre muestras de calibración
-#define THRESHOLD_PCT     8         // % de caída vs baseline = detección
-#define HYSTERESIS_PCT    3         // % extra para soltar (anti-rebote)
+#define THRESHOLD_PCT     5         // % de caída vs baseline = detección (reducido para pala con hoyos)
+#define HYSTERESIS_PCT    2         // % extra para soltar (anti-rebote)
+// #define THRESHOLD_PCT     8         // % de caída vs baseline = detección
+// #define HYSTERESIS_PCT    3         // % extra para soltar (anti-rebote)
 #define BASELINE_ALPHA    0.002f    // adapt. lenta (~30 seg para ajustarse)
 #define BASELINE_DEADZONE 5         // % máx desviación para adaptar baseline
 
