@@ -152,6 +152,7 @@ void loop() {
         Serial.println(F("  Sensores activos. ¡A jugar!"));
         Serial.println(F("══════════════════════════════════════\n"));
         display.setRGB(0, 255, 0);
+        display.showScore(game);
       }
       break;
 
@@ -168,16 +169,19 @@ void loop() {
         Serial.println(F(">>> +1 PUNTO EQUIPO A"));
         game.addPoint(TEAM_A);
         game.printState();
+        display.showScore(game);
         display.setRGB(128, 0, 255);  // morado flash
       } else if (actA == ACTION_UNDO) {
         Serial.println(F("<<< -1 PUNTO EQUIPO A (corrección)"));
         game.undoPoint(TEAM_A);
         game.printState();
+        display.showScore(game);
         display.setRGB(255, 180, 0);  // amarillo flash
       } else if (actA == ACTION_RESET) {
         Serial.println(F("!!! RESET MARCADOR (Sensor A largo)"));
         game.resetSet();
         game.printState();
+        display.showScore(game);
         display.setRGB(255, 0, 0);    // rojo flash
       }
 
@@ -186,16 +190,19 @@ void loop() {
         Serial.println(F(">>> +1 PUNTO EQUIPO B"));
         game.addPoint(TEAM_B);
         game.printState();
+        display.showScore(game);
         display.setRGB(255, 0, 80);   // coral flash
       } else if (actB == ACTION_UNDO) {
         Serial.println(F("<<< -1 PUNTO EQUIPO B (corrección)"));
         game.undoPoint(TEAM_B);
         game.printState();
+        display.showScore(game);
         display.setRGB(255, 180, 0);
       } else if (actB == ACTION_RESET) {
         Serial.println(F("!!! RESET MARCADOR (Sensor B largo)"));
         game.resetSet();
         game.printState();
+        display.showScore(game);
         display.setRGB(255, 0, 0);
       }
 

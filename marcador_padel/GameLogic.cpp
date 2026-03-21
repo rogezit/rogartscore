@@ -16,6 +16,8 @@ void GameLogic::reset() {
   _tiebreak = false;
   _superTiebreak = false;
   _gameOver = false;
+  _currentSet = 0;
+  for (int s = 0; s < 3; s++) { _setHistory[s][0] = 0; _setHistory[s][1] = 0; }
 }
 
 void GameLogic::resetSet() {
@@ -196,6 +198,9 @@ void GameLogic::_winGame(Team t) {
 }
 
 void GameLogic::_winSet(Team t) {
+  _setHistory[_currentSet][0] = _games[0];
+  _setHistory[_currentSet][1] = _games[1];
+  _currentSet++;
   _sets[t]++;
   _games[0] = _games[1] = 0;
   _points[0] = _points[1] = 0;
@@ -214,6 +219,16 @@ void GameLogic::_winSet(Team t) {
 void GameLogic::_winMatch(Team t) {
   _gameOver = true;
   _winner = t;
+}
+
+// ══════════════════════════════════════════════════════════
+//  Deuce
+// ══════════════════════════════════════════════════════════
+
+bool GameLogic::isDeuce() const {
+  if (_mode != MODE_OFFICIAL && _mode != MODE_GOLDEN) return false;
+  if (_tiebreak || _superTiebreak) return false;
+  return (_points[0] >= 3 && _points[1] >= 3);
 }
 
 // ══════════════════════════════════════════════════════════

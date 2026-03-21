@@ -25,6 +25,9 @@ public:
   uint8_t  getPointsRaw(Team t) const { return _points[t]; }
   bool     isTiebreak() const { return _tiebreak; }
   bool     isSuperTiebreak() const { return _superTiebreak; }
+  uint8_t  getCurrentSet() const { return _currentSet; }
+  uint8_t  getSetHistoryGames(uint8_t set, Team t) const { return _setHistory[set][t]; }
+  bool     isDeuce() const;
 
   // Retorna el texto del punto para display: "0","15","30","40","AD" o número
   const char* getPointDisplay(Team t) const;
@@ -42,6 +45,8 @@ private:
   uint8_t _points[2] = {0, 0};
   bool    _tiebreak = false;
   bool    _superTiebreak = false;
+  uint8_t _setHistory[3][2] = {{0,0},{0,0},{0,0}};
+  uint8_t _currentSet = 0;
 
   // Buffers para getPointDisplay
   mutable char _ptBuf[2][8];

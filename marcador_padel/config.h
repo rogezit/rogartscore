@@ -100,4 +100,33 @@ enum SystemState : uint8_t {
   STATE_GAME_OVER       // Partido terminado
 };
 
+// ══════════════════════════════════════════════════════════
+//  Panel HUB75 P10 32×16
+// ══════════════════════════════════════════════════════════
+#define PANEL_WIDTH   32
+#define PANEL_HEIGHT  16
+#define PANELS_NUM    1
+
+#define PIN_HUB_R1    25
+#define PIN_HUB_G1    26
+#define PIN_HUB_B1    2
+#define PIN_HUB_R2    14
+#define PIN_HUB_G2    12
+#define PIN_HUB_B2    27
+#define PIN_HUB_A     23
+#define PIN_HUB_B     19
+#define PIN_HUB_C     5
+#define PIN_HUB_D     17
+#define PIN_HUB_CLK   16
+#define PIN_HUB_LAT   4
+#define PIN_HUB_OE    15
+
+// Layout panel (posiciones en px)
+#define X_S0    0     // Set 1
+#define X_S1    6     // Set 2
+#define X_S2    12    // Set 3
+#define X_SEP   18    // Separador vertical
+#define X_PTS   20    // Inicio zona puntos
+#define PTS_W   12    // Ancho zona puntos (20..31)
+
 #endif
