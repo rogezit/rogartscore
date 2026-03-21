@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Marcador Pádel — Lógica de Juego</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111318;
+    --bg3: #181c23;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --muted: #7a7f8e;
+    --accent-green: #00e5a0;
+    --accent-teal: #00bcd4;
+    --accent-purple: #9c6fff;
+    --accent-amber: #ffb400;
+    --accent-coral: #ff5a5f;
+    --accent-blue: #4da6ff;
+    --accent-gray: #555a66;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border2);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+  }
+  header .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--accent-green);
+    border: 1px solid var(--accent-green);
+    padding: 3px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── LAYOUT ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label span {
+    color: var(--accent-green);
+    margin-right: 8px;
+  }
+
+  /* ── CARDS GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card .card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .card h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+  .card p, .card li {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .card ul { padding-left: 14px; }
+  .card .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+
+  /* accent colors */
+  .green  .card-accent { background: var(--accent-green); }
+  .teal   .card-accent { background: var(--accent-teal); }
+  .purple .card-accent { background: var(--accent-purple); }
+  .amber  .card-accent { background: var(--accent-amber); }
+  .coral  .card-accent { background: var(--accent-coral); }
+  .blue   .card-accent { background: var(--accent-blue); }
+  .gray   .card-accent { background: var(--accent-gray); }
+
+  .green  h3 { color: var(--accent-green); }
+  .teal   h3 { color: var(--accent-teal); }
+  .purple h3 { color: var(--accent-purple); }
+  .amber  h3 { color: var(--accent-amber); }
+  .coral  h3 { color: var(--accent-coral); }
+  .blue   h3 { color: var(--accent-blue); }
+  .gray   h3 { color: #aab; }
+
+  .green  .tag  { background: rgba(0,229,160,.1);  color: var(--accent-green); }
+  .teal   .tag  { background: rgba(0,188,212,.1);  color: var(--accent-teal); }
+  .purple .tag  { background: rgba(156,111,255,.1);color: var(--accent-purple); }
+  .amber  .tag  { background: rgba(255,180,0,.1);  color: var(--accent-amber); }
+  .coral  .tag  { background: rgba(255,90,95,.1);  color: var(--accent-coral); }
+  .blue   .tag  { background: rgba(77,166,255,.1); color: var(--accent-blue); }
+  .gray   .tag  { background: rgba(100,110,130,.1);color: #aab; }
+
+  /* ── HARDWARE ROW ── */
+  .hw-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .hw-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .hw-card .hw-icon {
+    font-family: var(--mono);
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .hw-card h4 { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .hw-card p  { font-size: 12px; color: var(--muted); }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow-x: auto;
+  }
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 520px;
+  }
+  .flow-node {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    min-width: 220px;
+    position: relative;
+  }
+  .flow-arrow {
+    width: 1px;
+    height: 28px;
+    background: var(--border2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flow-arrow::after {
+    content: '▼';
+    font-size: 9px;
+    color: var(--muted);
+    position: absolute;
+    bottom: -2px;
+  }
+  .flow-arrow .lbl {
+    position: absolute;
+    left: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: var(--mono);
+  }
+  .flow-row {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    width: 100%;
+    justify-content: center;
+  }
+  .flow-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .flow-h-line {
+    height: 1px;
+    background: var(--border2);
+    align-self: stretch;
+    margin-top: 26px;
+  }
+
+  /* ── TABLE ── */
+  .mono-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .mono-table th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border2);
+    text-align: left;
+  }
+  .mono-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .mono-table tr:last-child td { border-bottom: none; }
+  .mono-table .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 9px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  /* ── P10 DISPLAY ── */
+  .p10-display {
+    background: #060809;
+    border: 1px solid #1a2a1a;
+    border-radius: 10px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: var(--mono);
+    overflow-x: auto;
+  }
+  .p10-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .p10-digit {
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-family: var(--mono);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .p10-digit.lg { width: 72px; height: 72px; font-size: 36px; }
+  .p10-digit.md { width: 60px; height: 72px; font-size: 28px; }
+  .p10-digit.sm { width: 56px; height: 72px; font-size: 18px; }
+  .p10-label { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+  .p10-sep { font-size: 48px; color: var(--muted); align-self: flex-end; margin-bottom: 12px; padding-bottom: 6px; }
+
+  /* ── FSM ── */
+  .fsm-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 0;
+  }
+  .fsm-state {
+    border-radius: 8px;
+    padding: 14px 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .fsm-state .st-label { font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .fsm-state .st-desc  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .fsm-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+  .fsm-arrow .fa-line { width: 44px; height: 1px; background: var(--border2); }
+  .fsm-arrow .fa-head { font-size: 10px; color: var(--muted); }
+  .fsm-arrow .fa-lbl  { font-family: var(--mono); font-size: 9px; color: var(--muted); white-space: nowrap; }
+
+  /* ── VARS TABLE ── */
+  .vars-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .vars-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .vars-block h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .var-row:last-child { border-bottom: none; }
+  .var-name { font-family: var(--mono); color: var(--accent-teal); font-size: 11px; }
+  .var-type { font-family: var(--mono); font-size: 10px; color: var(--muted); background: var(--bg2); padding: 1px 6px; border-radius: 3px; }
+
+  /* ── SENSOR TIMING ── */
+  .timing-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .timing-card {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .timing-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+  .timing-bar .fill {
+    height: 100%;
+    border-radius: 4px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.7} 50%{opacity:1} }
+  .timing-card .tc-label { font-family: var(--mono); font-size: 11px; font-weight: 700; }
+  .timing-card .tc-time  { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .timing-card .tc-desc  { font-size: 12px; color: var(--muted); }
+
+  /* ── NOTE BOX ── */
+  .note {
+    background: rgba(0,229,160,.05);
+    border-left: 3px solid var(--accent-green);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .note strong { color: var(--accent-green); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 40px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .section { animation: fadeIn .4s ease both; }
+  .section:nth-child(1) { animation-delay: .05s; }
+  .section:nth-child(2) { animation-delay: .1s; }
+  .section:nth-child(3) { animation-delay: .15s; }
+  .section:nth-child(4) { animation-delay: .2s; }
+  .section:nth-child(5) { animation-delay: .25s; }
+  .section:nth-child(6) { animation-delay: .3s; }
+  .section:nth-child(7) { animation-delay: .35s; }
+  .section:nth-child(8) { animation-delay: .4s; }
+
+  @media (max-width: 700px) {
+    .grid-4, .hw-row { grid-template-columns: 1fr 1fr; }
+    .grid-2, .grid-3, .vars-grid { grid-template-columns: 1fr; }
+    header { padding: 20px; flex-wrap: wrap; }
+    main { padding: 24px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="badge">v1.0 · Sistema Pádel MX</div>
+    <h1>Marcador Digital — Lógica de Juego</h1>
+    <p>Panel P10 · Sensores TCRT5000 · 4 modos · Firmware FSM</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── 01 HARDWARE ── -->
+  <section class="section">
+    <div class="section-label"><span>01</span>Hardware de entrada</div>
+    <div class="hw-row">
+      <div class="hw-card">
+        <div class="hw-icon" style="color:var(--accent-gray)">⏻</div>
+        <h4 style="color:#aab">Botón ON/OFF</h4>
+        <p>Enciende y apaga el sistema</p>
+        <p style="margin-top:4px;font-size:11px;color:var(--accent-coral)">Largo 3 s → apagado forzado</p>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon" style="color:var(--accent-teal)">◉</div>
+        <h4 style="color:var(--accent-teal)">Botón PULSE</h4>
+        <p>Cicla modos antes del partido</p>
+        <p style="margin-top:4px;font-size:11px;color:var(--accent-teal)">Largo 1.5 s → confirma modo</p>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon" style="color:var(--accent-coral)">↺</div>
+        <h4 style="color:var(--accent-coral)">Botón RESET</h4>
+        <p>Corto → reinicia set actual</p>
+        <p style="margin-top:4px;font-size:11px;color:var(--accent-coral)">Largo 3 s → reinicia partido</p>
+      </div>
+      <div class="hw-card">
+        <div class="hw-icon" style="color:var(--accent-purple)">◈</div>
+        <h4 style="color:var(--accent-purple)">TCRT5000 × 2</h4>
+        <p>Un sensor por equipo</p>
+        <p style="margin-top:4px;font-size:11px;color:var(--accent-purple)">Infrarrojo · sin contacto</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 02 SENSORES TCRT5000 ── -->
+  <section class="section">
+    <div class="section-label"><span>02</span>Lógica de detección — TCRT5000</div>
+    <div class="timing-row">
+      <div class="timing-card" style="border-color:rgba(156,111,255,.3)">
+        <div class="tc-label" style="color:var(--accent-purple)">Equipo A — Sensor izquierdo</div>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-green)">1 s</div>
+            <div class="tc-desc">Pala frente → +1 punto</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:33%;background:var(--accent-green)"></div></div>
+          </div>
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-amber)">3 s</div>
+            <div class="tc-desc">Pala frente → −1 punto</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:100%;background:var(--accent-amber)"></div></div>
+          </div>
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-coral)">10 s</div>
+            <div class="tc-desc">Pala frente → reset score</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:100%;background:var(--accent-coral)"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="timing-card" style="border-color:rgba(255,90,95,.3)">
+        <div class="tc-label" style="color:var(--accent-coral)">Equipo B — Sensor derecho</div>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-green)">1 s</div>
+            <div class="tc-desc">Pala frente → +1 punto</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:33%;background:var(--accent-green)"></div></div>
+          </div>
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-amber)">3 s</div>
+            <div class="tc-desc">Pala frente → −1 punto</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:100%;background:var(--accent-amber)"></div></div>
+          </div>
+          <div style="flex:1">
+            <div class="tc-time" style="color:var(--accent-coral)">10 s</div>
+            <div class="tc-desc">Pala frente → reset score</div>
+            <div class="timing-bar" style="margin-top:6px"><div class="fill" style="width:100%;background:var(--accent-coral)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><strong>Debounce recomendado:</strong> 200 ms mínimo entre detecciones para evitar doble conteo.</div>
+  </section>
+
+  <!-- ── 03 MODOS ── -->
+  <section class="section">
+    <div class="section-label"><span>03</span>Modos de juego — ciclo con botón PULSE</div>
+    <div class="grid-4">
+      <div class="card teal">
+        <div class="card-accent"></div>
+        <span class="tag">Modo 1</span>
+        <h3>Partido Oficial</h3>
+        <ul>
+          <li>Best of 3 sets</li>
+          <li>Games hasta 6</li>
+          <li>Puntos: 0/15/30/40</li>
+          <li>Deuce + ventaja</li>
+          <li>Tiebreak en 6-6</li>
+          <li>Tiebreak a 7 pts + 2</li>
+        </ul>
+      </div>
+      <div class="card purple">
+        <div class="card-accent"></div>
+        <span class="tag">Modo 2</span>
+        <h3>Punto de Oro</h3>
+        <ul>
+          <li>Best of 3 sets</li>
+          <li>Games hasta 6</li>
+          <li>Puntos: 0/15/30/40</li>
+          <li>Sin ventaja</li>
+          <li>40-40 → punto decisivo</li>
+          <li>Más rápido — MX popular</li>
+        </ul>
+      </div>
+      <div class="card amber">
+        <div class="card-accent"></div>
+        <span class="tag">Modo 3</span>
+        <h3>Americano / Mixto</h3>
+        <ul>
+          <li>Sin sets</li>
+          <li>Conteo libre de games</li>
+          <li>Puntos por game</li>
+          <li>Hasta N configurable</li>
+          <li>Ideal torneos sociales</li>
+          <li>Rotación de parejas</li>
+        </ul>
+      </div>
+      <div class="card coral">
+        <div class="card-accent"></div>
+        <span class="tag">Modo 4</span>
+        <h3>Entrenamiento</h3>
+        <ul>
+          <li>Sin sets ni games</li>
+          <li>Contador libre A / B</li>
+          <li>Sensor A → suma A</li>
+          <li>Sensor B → suma B</li>
+          <li>RESET borra ambos</li>
+          <li>Sin lógica de fin</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 04 FLUJO DE PUNTO ── -->
+  <section class="section">
+    <div class="section-label"><span>04</span>Flujo de punto — Modo 1 (partido oficial)</div>
+    <div class="flow-wrap">
+      <div class="flow">
+
+        <!-- Sensor dispara -->
+        <div class="flow-node" style="background:rgba(156,111,255,.12);border:1px solid rgba(156,111,255,.3);color:var(--accent-purple)">
+          Sensor TCRT5000 detecta pala (1 s) → punto raw
+        </div>
+        <div class="flow-arrow"><span class="lbl">incremento interno</span></div>
+
+        <!-- Decisión puntos -->
+        <div class="flow-node" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text)">
+          ¿Puntos actuales del equipo?
+        </div>
+
+        <!-- Rama puntos -->
+        <div style="display:flex;width:100%;gap:0;justify-content:center;margin-top:0">
+
+          <!-- Rama izq: 40-40 DEUCE -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">40–40</div>
+            </div>
+            <div class="flow-node" style="background:rgba(255,180,0,.1);border:1px solid rgba(255,180,0,.3);color:var(--accent-amber);min-width:180px;width:100%">
+              DEUCE<br><span style="font-size:10px;font-weight:400;color:var(--muted)">→ necesita 2 puntos seguidos</span>
+            </div>
+          </div>
+
+          <!-- Rama centro: suma normal -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">0→15→30→40</div>
+            </div>
+            <div class="flow-node" style="background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);color:var(--accent-green);min-width:180px;width:100%">
+              Suma punto<br><span style="font-size:10px;font-weight:400;color:var(--muted)">→ actualiza P10</span>
+            </div>
+          </div>
+
+          <!-- Rama der: 4° punto → game -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">gana 4°</div>
+            </div>
+            <div class="flow-node" style="background:rgba(0,188,212,.1);border:1px solid rgba(0,188,212,.3);color:var(--accent-teal);min-width:180px;width:100%">
+              GAME GANADO<br><span style="font-size:10px;font-weight:400;color:var(--muted)">→ suma 1 game, resetea puntos</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow" style="margin-top:4px"><span class="lbl">game acumulado</span></div>
+
+        <!-- Decisión games -->
+        <div class="flow-node" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text)">
+          ¿Games del ganador llegan a 6 con +2 diferencia?
+        </div>
+
+        <!-- Rama games -->
+        <div style="display:flex;width:100%;gap:0;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">6–6</div>
+            </div>
+            <div class="flow-node" style="background:rgba(255,180,0,.1);border:1px solid rgba(255,180,0,.3);color:var(--accent-amber);min-width:180px;width:100%">
+              TIEBREAK<br><span style="font-size:10px;font-weight:400;color:var(--muted)">→ primero en 7 con +2</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">sí, +2</div>
+            </div>
+            <div class="flow-node" style="background:rgba(0,188,212,.1);border:1px solid rgba(0,188,212,.3);color:var(--accent-teal);min-width:180px;width:100%">
+              SET GANADO<br><span style="font-size:10px;font-weight:400;color:var(--muted)">→ suma set, resetea games</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:220px">
+            <div style="height:28px;width:1px;background:var(--border2);position:relative;">
+              <div style="position:absolute;left:8px;top:8px;font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap">no</div>
+            </div>
+            <div class="flow-node" style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);min-width:180px;width:100%">
+              Sigue el set<br><span style="font-size:10px;font-weight:400">→ nuevo punto</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow" style="margin-top:4px"><span class="lbl">sets acumulados</span></div>
+
+        <!-- Decisión sets -->
+        <div class="flow-node" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text)">
+          ¿Sets ganados = 2? (Best of 3)
+        </div>
+
+        <div class="flow-arrow"><span class="lbl">sí</span></div>
+
+        <div class="flow-node" style="background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.4);color:var(--accent-green);font-size:14px">
+          PARTIDO TERMINADO — P10 parpadea ganador
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 05 BOTONES EN JUEGO ── -->
+  <section class="section">
+    <div class="section-label"><span>05</span>Función de botones durante el partido</div>
+    <div class="flow-wrap" style="padding:0">
+      <table class="mono-table">
+        <thead>
+          <tr>
+            <th>Botón</th>
+            <th>Presión corta (&lt; 1 s)</th>
+            <th>Presión media (1.5–3 s)</th>
+            <th>Presión larga (&gt; 3 s)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="chip" style="background:rgba(100,110,130,.2);color:#aab">ON/OFF</span></td>
+            <td style="color:var(--muted)">—</td>
+            <td style="color:var(--muted)">—</td>
+            <td>Apaga el sistema completo</td>
+          </tr>
+          <tr>
+            <td><span class="chip" style="background:rgba(0,188,212,.15);color:var(--accent-teal)">PULSE</span></td>
+            <td>Pre-partido: cicla al siguiente modo</td>
+            <td>Confirma modo seleccionado</td>
+            <td style="color:var(--muted)">—</td>
+          </tr>
+          <tr>
+            <td><span class="chip" style="background:rgba(255,90,95,.15);color:var(--accent-coral)">RESET</span></td>
+            <td>Reinicia set actual (0-0 games, 0-0 pts)</td>
+            <td style="color:var(--muted)">—</td>
+            <td>Reinicia partido completo</td>
+          </tr>
+          <tr>
+            <td><span class="chip" style="background:rgba(156,111,255,.15);color:var(--accent-purple)">SENSOR A</span></td>
+            <td>+1 punto equipo A</td>
+            <td>−1 punto equipo A (corrección)</td>
+            <td>Reset marcador (Kronoset)</td>
+          </tr>
+          <tr>
+            <td><span class="chip" style="background:rgba(255,90,95,.15);color:var(--accent-coral)">SENSOR B</span></td>
+            <td>+1 punto equipo B</td>
+            <td>−1 punto equipo B (corrección)</td>
+            <td>Reset marcador (Kronoset)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 06 LAYOUT P10 ── -->
+  <section class="section">
+    <div class="section-label"><span>06</span>Layout visual — Panel LED P10</div>
+    <div class="p10-display">
+      <div class="p10-zone">
+        <div class="p10-digit lg" style="background:rgba(156,111,255,.15);border-color:rgba(156,111,255,.3);color:var(--accent-purple)">1</div>
+        <div class="p10-label" style="color:var(--accent-purple)">Sets A</div>
+      </div>
+      <div class="p10-zone">
+        <div class="p10-digit md" style="background:rgba(0,188,212,.12);border-color:rgba(0,188,212,.3);color:var(--accent-teal)">5</div>
+        <div class="p10-label" style="color:var(--accent-teal)">Games A</div>
+      </div>
+      <div class="p10-zone">
+        <div class="p10-digit sm" style="background:rgba(77,166,255,.12);border-color:rgba(77,166,255,.3);color:var(--accent-blue)">40</div>
+        <div class="p10-label" style="color:var(--accent-blue)">Pts A</div>
+      </div>
+      <div class="p10-sep">:</div>
+      <div class="p10-zone">
+        <div class="p10-digit sm" style="background:rgba(255,90,95,.12);border-color:rgba(255,90,95,.3);color:var(--accent-coral)">30</div>
+        <div class="p10-label" style="color:var(--accent-coral)">Pts B</div>
+      </div>
+      <div class="p10-zone">
+        <div class="p10-digit md" style="background:rgba(0,188,212,.12);border-color:rgba(0,188,212,.3);color:var(--accent-teal)">4</div>
+        <div class="p10-label" style="color:var(--accent-teal)">Games B</div>
+      </div>
+      <div class="p10-zone">
+        <div class="p10-digit lg" style="background:rgba(255,90,95,.15);border-color:rgba(255,90,95,.3);color:var(--accent-coral)">0</div>
+        <div class="p10-label" style="color:var(--accent-coral)">Sets B</div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Zona de puntos:</strong> muestra 0 / 15 / 30 / 40 / AD en modo oficial, o valores numéricos directos en tiebreak y modo entrenamiento.
+    </div>
+  </section>
+
+  <!-- ── 07 TIEBREAK MX ── -->
+  <section class="section">
+    <div class="section-label"><span>07</span>Tiebreak — variantes México</div>
+    <div class="grid-2">
+      <div class="card amber">
+        <div class="card-accent"></div>
+        <span class="tag">Tiebreak estándar · 7 pts</span>
+        <h3>Se usa en 6-6 de games</h3>
+        <ul>
+          <li>Gana quien llega a 7 primero</li>
+          <li>Mínimo 2 puntos de ventaja</li>
+          <li>Posibles: 7-5, 8-6, 9-7, 10-8…</li>
+          <li>Conteo numérico (no 15/30/40)</li>
+          <li>Cambio de lado cada 6 pts totales</li>
+        </ul>
+      </div>
+      <div class="card coral">
+        <div class="card-accent"></div>
+        <span class="tag">Súper Tiebreak · 10 pts — muy popular MX</span>
+        <h3>Reemplaza el 3er set</h3>
+        <ul>
+          <li>Al llegar a 1 set cada equipo</li>
+          <li>Primero en 10 con +2 gana</li>
+          <li>Posibles: 10-8, 11-9, 12-10…</li>
+          <li>Ahorra tiempo — torneos de un día</li>
+          <li>Conteo numérico directo en P10</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 08 FSM ── -->
+  <section class="section">
+    <div class="section-label"><span>08</span>Máquina de estados del sistema (FSM)</div>
+    <div class="flow-wrap">
+      <div class="fsm-row">
+        <div class="fsm-state" style="background:rgba(100,110,130,.15);border:1px solid var(--accent-gray)">
+          <div class="st-label" style="color:#aab">APAGADO</div>
+          <div class="st-desc">Pantalla off</div>
+        </div>
+        <div class="fsm-arrow">
+          <div class="fa-lbl">ON/OFF</div>
+          <div style="display:flex;align-items:center;gap:0">
+            <div class="fa-line"></div>
+            <div class="fa-head">▶</div>
+          </div>
+        </div>
+        <div class="fsm-state" style="background:rgba(77,166,255,.1);border:1px solid var(--accent-blue)">
+          <div class="st-label" style="color:var(--accent-blue)">SEL MODO</div>
+          <div class="st-desc">PULSE cicla 1→4</div>
+        </div>
+        <div class="fsm-arrow">
+          <div class="fa-lbl">PULSE largo</div>
+          <div style="display:flex;align-items:center;gap:0">
+            <div class="fa-line"></div>
+            <div class="fa-head">▶</div>
+          </div>
+        </div>
+        <div class="fsm-state" style="background:rgba(0,188,212,.1);border:1px solid var(--accent-teal)">
+          <div class="st-label" style="color:var(--accent-teal)">EN JUEGO</div>
+          <div class="st-desc">Sensores activos</div>
+        </div>
+        <div class="fsm-arrow">
+          <div class="fa-lbl">2 sets ganados</div>
+          <div style="display:flex;align-items:center;gap:0">
+            <div class="fa-line"></div>
+            <div class="fa-head">▶</div>
+          </div>
+        </div>
+        <div class="fsm-state" style="background:rgba(0,229,160,.1);border:1px solid var(--accent-green)">
+          <div class="st-label" style="color:var(--accent-green)">FIN PARTIDO</div>
+          <div class="st-desc">P10 parpadea</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:20px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">
+          <span style="color:var(--accent-coral)">↺ RESET corto</span> → reinicia set (desde EN JUEGO)
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">
+          <span style="color:var(--accent-coral)">↺ RESET largo</span> → nuevo partido (desde FIN PARTIDO → SEL MODO)
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--mono)">
+          <span style="color:#aab">⏻ ON/OFF largo</span> → APAGADO desde cualquier estado
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 09 VARIABLES ── -->
+  <section class="section">
+    <div class="section-label"><span>09</span>Variables de estado — firmware</div>
+    <div class="vars-grid">
+      <div class="vars-block" style="border-color:rgba(0,188,212,.2)">
+        <h4 style="color:var(--accent-teal)">Estado del partido</h4>
+        <div class="var-row"><span class="var-name">modoJuego</span><span class="var-type">uint8 · 1–4</span></div>
+        <div class="var-row"><span class="var-name">setsA / setsB</span><span class="var-type">uint8 · 0–2</span></div>
+        <div class="var-row"><span class="var-name">gamesA / gamesB</span><span class="var-type">uint8 · 0–7</span></div>
+        <div class="var-row"><span class="var-name">puntosA / puntosB</span><span class="var-type">uint8 · 0–40/Ad/TB</span></div>
+        <div class="var-row"><span class="var-name">estadoFSM</span><span class="var-type">enum · 4 estados</span></div>
+        <div class="var-row"><span class="var-name">tiebreakActivo</span><span class="var-type">bool</span></div>
+        <div class="var-row"><span class="var-name">superTiebreak</span><span class="var-type">bool</span></div>
+        <div class="var-row"><span class="var-name">puntoOro</span><span class="var-type">bool · Modo 2</span></div>
+      </div>
+      <div class="vars-block" style="border-color:rgba(156,111,255,.2)">
+        <h4 style="color:var(--accent-purple)">Control de hardware</h4>
+        <div class="var-row"><span class="var-name">tiempoSensorA</span><span class="var-type">uint32 · millis</span></div>
+        <div class="var-row"><span class="var-name">tiempoSensorB</span><span class="var-type">uint32 · millis</span></div>
+        <div class="var-row"><span class="var-name">tiempoPULSE</span><span class="var-type">uint32 · millis</span></div>
+        <div class="var-row"><span class="var-name">tiempoRESET</span><span class="var-type">uint32 · millis</span></div>
+        <div class="var-row"><span class="var-name">debounce</span><span class="var-type">const · 200 ms</span></div>
+        <div class="var-row"><span class="var-name">bufferP10[]</span><span class="var-type">uint8[] · frame</span></div>
+        <div class="var-row"><span class="var-name">flagActualizar</span><span class="var-type">bool</span></div>
+        <div class="var-row"><span class="var-name">ultimaDeteccion</span><span class="var-type">uint32 · millis</span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Sistema Marcador Pádel MX · Panel P10 + TCRT5000</span>
+  <span>4 modos · FSM · Firmware Arduino/ESP32</span>
+</footer>
+
+</body>
+</html>

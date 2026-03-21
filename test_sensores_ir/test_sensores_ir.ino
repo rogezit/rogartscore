@@ -17,7 +17,7 @@
  * └──────────────────────────────────────────────────────────────┘
  *
  *  PINES RESERVADOS POR PANEL HUB75 (NO USAR):
- *   GPIO 25, 26, 27, 14, 12, 13, 23, 19, 5, 17, 16, 4, 15
+ *   GPIO 25, 26, 2, 14, 12, 27, 23, 19, 5, 17, 16, 4, 15
  *
  *  CONEXIÓN:
  *
@@ -42,7 +42,7 @@
  *   3.3V       →    Ánodo (+) largo
  *   GPIO18     →    R  (con resistencia 220Ω)
  *   GPIO21     →    G  (con resistencia 220Ω)
- *   GPIO2      →    B  (con resistencia 220Ω)
+ *   GPIO13     →    B  (con resistencia 220Ω)
  *   ─────────────────────────────────────────────
  *   NOTA: Ánodo común → LOW=encendido, HIGH=apagado
  *
@@ -80,7 +80,7 @@
 // LED RGB (ánodo común)
 #define PIN_LED_R     18    // Rojo   → GPIO18
 #define PIN_LED_G     21    // Verde  → GPIO21
-#define PIN_LED_B      2    // Azul   → GPIO2
+#define PIN_LED_B     13    // Azul   → GPIO13
 
 // PWM config
 #define PWM_FREQ    5000    // 5 kHz
@@ -337,19 +337,20 @@ void loop() {
  *  PINES RESERVADOS POR PANEL HUB75
  * ═══════════════════════════════════════════════════════════
  *
- *   GPIO 25 → R1     GPIO 26 → G1
- *   GPIO 27 → B1     GPIO 14 → G2
- *   GPIO 12 → G2     GPIO 13 → B2
- *   GPIO 23 → A      GPIO 19 → B
- *   GPIO  5 → C      GPIO 17 → D
- *   GPIO 16 → CLK    GPIO  4 → LAT
- *   GPIO 15 → OE
+ *   IDC 1  R1  → GPIO 25    IDC 2  G1  → GPIO 26
+ *   IDC 3  B1  → GPIO 2
+ *   IDC 5  R2  → GPIO 14    IDC 6  G2  → GPIO 12
+ *   IDC 7  B2  → GPIO 27
+ *   IDC 9  A   → GPIO 23    IDC 10 B   → GPIO 19
+ *   IDC 11 C   → GPIO 5     IDC 12 D   → GPIO 17
+ *   IDC 13 CLK → GPIO 16    IDC 14 LAT → GPIO 4
+ *   IDC 15 OE  → GPIO 15
  *
  * ═══════════════════════════════════════════════════════════
  *  PINES LIBRES DISPONIBLES
  * ═══════════════════════════════════════════════════════════
  *
- *   GPIO  2  ← B LED RGB (este sketch)
+ *   GPIO 13  ← B LED RGB (este sketch)
  *   GPIO 18  ← R LED RGB (este sketch)
  *   GPIO 21  ← G LED RGB (este sketch)
  *   GPIO 22  ← DO TCRT5000 #1 (este sketch)
